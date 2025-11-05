@@ -17,7 +17,7 @@ import {
   SafetyOutlined,
   EnvironmentOutlined,
   BankOutlined,
-  TrendingUpOutlined,
+  RiseOutlined,
   CloudOutlined
 } from '@ant-design/icons'
 import Plot from 'react-plotly.js'
@@ -221,7 +221,7 @@ const Dashboard = () => {
             <Statistic
               title="Active Predictions"
               value={riskSummary?.districts?.length || 0}
-              prefix={<TrendingUpOutlined style={{ color: '#1890ff' }} />}
+              prefix={<RiseOutlined style={{ color: '#1890ff' }} />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
