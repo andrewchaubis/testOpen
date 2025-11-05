@@ -1,5 +1,6 @@
 """
-Flood Prediction Model using CLIMADA framework and machine learning
+Flood Prediction Model using alternative CLIMADA-like framework and machine learning
+Compatible with Python 3.12.3
 """
 
 import numpy as np
@@ -13,11 +14,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 
+# Import our alternative CLIMADA implementation
+from .climada_alternative import KelantanFloodModel, ClimateEvent, Asset
+
 class FloodPredictor:
     def __init__(self):
         self.model = None
         self.scaler = StandardScaler()
         self.is_trained = False
+        self.climada_model = KelantanFloodModel()
         self.feature_columns = [
             'rainfall_24h', 'rainfall_7d', 'humidity', 'temperature',
             'wind_speed', 'river_level', 'soil_saturation', 'elevation',
@@ -391,3 +396,82 @@ class FloodPredictor:
     def is_loaded(self) -> bool:
         """Check if model is loaded and ready"""
         return self.is_trained or self.model is not None
+    
+    def initialize_climada_data(self, num_assets: int = 1000, num_events: int = 50):
+        """Initialize CLIMADA model with synthetic Kelantan data"""
+        try:
+            # Generate synthetic assets for Kelantan
+            assets = self.climada_model.generate_kelantan_assets(num_assets)
+            self.climada_model.load_exposure_data(assets)
+            
+            # Generate historical flood events
+            events = self.climada_model.generate_historical_floods(num_events)
+            self.climada_model.load_hazard_data(events)
+            
+            return True
+        except Exception as e:
+            print(f"Error initializing CLIMADA data: {e}")
+            return False
+    
+    def run_climada_stress_test(self, return_periods: List[int] = [10, 25, 50, 100]) -> Dict:
+        """Run CLIMADA-based stress test for different return periods"""
+        try:
+            if not hasattr(self.climada_model, 'exposure_data') or not self.climada_model.exposure_data:
+                self.initialize_climada_data()
+            
+            results = self.climada_model.run_probabilistic_assessment(return_periods)
+            
+            # Format results for API response
+            formatted_results = {}
+            for return_period, result in results.items():
+                formatted_results[f"{return_period}_year"] = {
+                    "total_damage_myr": result.total_damage,
+                    "affected_assets": result.affected_assets,
+                    "damage_by_type": result.damage_by_asset_type,
+                    "damage_ratio": result.total_damage / sum(
+                        asset.value for asset in self.climada_model.exposure_data.values()
+                    ) if self.climada_model.exposure_data else 0
+                }
+            
+            return {
+                "stress_test_results": formatted_results,
+                "methodology": "CLIMADA-like probabilistic assessment",
+                "timestamp": datetime.now().isoformat(),
+                "total_portfolio_value": sum(
+                    asset.value for asset in self.climada_model.exposure_data.values()
+                ) if self.climada_model.exposure_data else 0
+            }
+            
+        except Exception as e:
+            print(f"Error running CLIMADA stress test: {e}")
+            return {
+                "error": str(e),
+                "fallback_results": self._generate_fallback_stress_test(return_periods)
+            }
+    
+    def _generate_fallback_stress_test(self, return_periods: List[int]) -> Dict:
+        """Generate fallback stress test results when CLIMADA is not available"""
+        results = {}
+        base_damage_ratio = 0.05  # 5% base damage ratio
+        
+        for rp in return_periods:
+            # Damage increases with return period
+            damage_multiplier = 1 + (rp / 100)  # 1x to 2x multiplier
+            damage_ratio = min(0.8, base_damage_ratio * damage_multiplier)
+            
+            # Assume portfolio value of 1B MYR
+            portfolio_value = 1_000_000_000
+            total_damage = portfolio_value * damage_ratio
+            
+            results[f"{rp}_year"] = {
+                "total_damage_myr": total_damage,
+                "affected_assets": int(1000 * damage_ratio),
+                "damage_by_type": {
+                    "residential": total_damage * 0.6,
+                    "commercial": total_damage * 0.3,
+                    "industrial": total_damage * 0.1
+                },
+                "damage_ratio": damage_ratio
+            }
+        
+        return results

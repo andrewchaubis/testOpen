@@ -21,7 +21,7 @@ import {
   ExperimentOutlined,
   BankOutlined,
   WarningOutlined,
-  TrendingUpOutlined
+  RiseOutlined
 } from '@ant-design/icons'
 import Plot from 'react-plotly.js'
 import { apiService } from '../services/apiService'
