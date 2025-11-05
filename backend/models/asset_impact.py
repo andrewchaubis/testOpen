@@ -1,6 +1,7 @@
 """
 Asset Impact Assessment Model
 Calculates financial impact of floods on assets and loan portfolios
+Compatible with Python 3.12.3
 """
 
 import numpy as np
@@ -9,6 +10,9 @@ from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
 import random
 from config.settings import settings
+
+# Import our alternative CLIMADA implementation
+from .climada_alternative import KelantanFloodModel, ClimateEvent, Asset
 
 class AssetImpactModel:
     def __init__(self):
